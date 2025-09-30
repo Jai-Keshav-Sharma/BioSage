@@ -171,4 +171,150 @@ Build an end-to-end, demo-ready knowledge engine that ingests space biology docu
 2) Acceptable external services for demo (e.g., managed Neo4j Aura) or strictly local?
 3) Target demo length and 2–3 headline questions you want to showcase?
 
+---
+
+## Agent-Ready Build Specification
+
+The following sections provide precise contracts and step-by-step milestones so any LLM/Agent can implement this project end-to-end without ambiguity.
+
+### Implementation Milestones & Checklist
+1) Repository scaffold
+   - Create folders: `app/`, `ui_streamlit/`, `ingestion/`, `nlp/`, `rag/`, `graph/`, `index/`, `config/`, `tests/`, `notebooks/`, `scripts/`, `data/`
+   - Add `.env.example` with all variables from Configuration Plan
+   - Add `pyproject.toml` dependencies (see Dependencies) and `README.md` quickstart
+2) Ingestion & Parsing
+   - Implement PDF loader with PyMuPDF; OCR fallback via Tesseract
+   - Normalize metadata (title, authors, year, doi); persist parsed JSONL in `data/parsed/`
+   - Section-aware chunking; store chunks with `doc_id`, `section`, `page`
+3) Indexing
+   - Build embeddings (CPU-first model); create FAISS/Chroma index in `data/index/`
+   - BM25 text index (rank-bm25)
+   - Background job to re-index when new docs added
+4) NLP Extraction
+   - NER with spaCy/SciSpaCy; map to entity schema
+   - Rule/LLM-assisted relation extraction; store triples with provenance
+5) Graph
+   - Neo4j connectors; create constraints/indexes; upsert entities/relations
+   - Graph builder job from extracted triples
+6) Retrieval & Rerank
+   - Vector + BM25 retrieval; CPU-friendly cross-encoder reranker
+   - Graph retrieval via parameterized Cypher templates
+7) Agentic RAG
+   - Implement tool interfaces; decision policy for vector/graph/hybrid
+   - Grounded generation with citation enforcement
+8) API Layer
+   - Implement `/ingest`, `/search`, `/answer`, `/graph` per contracts below
+9) Streamlit UI
+   - Search/Q&A pane with citations; filters; KG visualization; admin ingest page (toggle)
+10) Testing & Evaluation
+   - Implement tests and evaluation scripts; generate basic eval report
+11) Packaging & Demo
+   - One-command run; sample corpus; short demo script
+
+### API Contract (HTTP)
+- `POST /ingest`
+  - body: `{ paths: string[] | null }` (null = use `documents/`)
+  - resp: `{ accepted: number, failed: number, job_id: string }`
+- `GET /search`
+  - query: `q`, `k=10`, `filters?`
+  - resp: `{ query: string, results: [ { doc_id, chunk_id, score, text, section, page } ] }`
+- `POST /answer`
+  - body: `{ query: string, mode?: "auto"|"vector"|"graph"|"hybrid", k?: number }`
+  - resp: `{ answer: string, citations: [ { doc_id, chunk_id, text, section, page } ], reasoning?: string, confidence: number }`
+- `GET /graph/entity`
+  - query: `name`, `type?`
+  - resp: `{ entity: { id, name, type }, neighbors: [ { id, name, type, relation } ] }`
+- `GET /graph/path`
+  - query: `source`, `target`, `max_len=3`
+  - resp: `{ nodes: [...], edges: [...] }`
+
+### Data Schemas (JSONL / internal)
+- Document
+  - `{ doc_id, title, authors: string[], year: number|null, doi: string|null, sections: [ { name, text, page_start, page_end } ] }`
+- Chunk
+  - `{ chunk_id, doc_id, section, page, text, embedding: float[]|null, entities: EntityRef[] }`
+- EntityRef
+  - `{ span: [start,end], text, type: "organism"|"tissue"|"gene"|"condition"|"variable" }`
+- Triple
+  - `{ subject: Entity, predicate: string, object: Entity, provenance: { doc_id, chunk_id, span: [start,end] } }`
+
+### LLM Tooling Contract (Agent Interfaces)
+- `retrieve_vector(query: string, k: int, filters?: dict): Passage[]`
+- `retrieve_graph(entityOrPattern: string|dict): GraphResult`
+- `retrieve_hybrid(query: string): { passages: Passage[], subgraph: GraphResult }`
+- `rerank(passages: Passage[], query: string, top_k: int): Passage[]`
+- `answer_with_citations(contexts: Passage[], query: string, max_tokens?: int): { answer: string, citations: Passage[] }`
+Notes:
+- All tools are pure; no side-effects. Time budget per call should target < 800 ms on CPU where possible.
+- The agent must abstain when grounding is insufficient and ask for refinement.
+
+### Environment Variables Reference (.env.example)
+- `LLM_PROVIDER=openai|ollama|openrouter|azure|vllm|none`
+- `LLM_MODEL=llama-3.1-8b-instruct`
+- `OPENAI_API_KEY=...`
+- `OPENROUTER_API_KEY=...`
+- `AZURE_OPENAI_API_KEY=...`
+- `EMBEDDING_MODEL=bge-small-en`
+- `NEO4J_URI=neo4j+s://<aura-host>`
+- `NEO4J_USER=neo4j`
+- `NEO4J_PASSWORD=...`
+- `USE_GPU=false`
+- `MAX_CONTEXT_TOKENS=4096`
+- `RETRIEVAL_TOP_K=10`
+- `RERANK_TOP_K=5`
+
+### Dependencies (Python)
+- Core: `fastapi`, `uvicorn`, `pydantic`
+- Streamlit: `streamlit`
+- Parsing/OCR: `pymupdf`, `pytesseract`, `Pillow`
+- NLP: `spacy`, `scispacy`, `sentence-transformers`, `rank-bm25`
+- Vector DB: `faiss-cpu` or `chromadb`
+- Graph: `neo4j`
+- Eval/Utils: `numpy`, `pandas`, `scikit-learn`, `tqdm`, `pyvis`
+- Testing: `pytest`
+
+### Runbook
+- Dev
+  - `cp .env.example .env` and fill keys
+  - `uv run app.py` to start API; `streamlit run ui_streamlit/App.py` to start UI
+  - Place PDFs in `documents/`; call `/ingest` or use admin page
+- Production/Demo
+  - Use Neo4j AuraDB; keep FAISS/Chroma on local storage or attach volume
+  - Prebuild indexes before demo; warm caches with top demo queries
+
+### Evaluation Protocol (Automation)
+- Run: `uv run scripts/run_eval.py --queries tests/queries.jsonl --gold tests/gold.jsonl`
+- Outputs: `notebooks/eval_report.ipynb` containing Recall@k, grounding accuracy, hallucination rate, and latency histograms
+- Thresholds to pass:
+  - Recall@10 ≥ 0.75 on demo set
+  - Grounding coverage ≥ 0.95 of claims cited
+  - Hallucination rate ≤ 5%
+  - P95 end-to-end answer latency ≤ 4s (CPU)
+
+### Non-Functional Requirements
+- Scalability: background job queue; incremental indexing; idempotent upserts to Neo4j
+- Observability: basic request and job logs; latency metrics per stage
+- Security: admin-only ingest; secrets via `.env`; no keys in repo
+- Portability: local-first; cloud-ready with AuraDB and API provider toggles
+
+### File/Folder Responsibilities (Concise)
+- `app/`: routers, request/response models, dependency injection, error handling
+- `ui_streamlit/`: pages, UI state, caching, API client
+- `ingestion/`: loaders, OCR, normalization, JSONL writer
+- `nlp/`: spaCy pipelines, relation heuristics, section parser
+- `index/`: embedding generator, FAISS/Chroma builders, BM25 index
+- `graph/`: Neo4j client, Cypher templates, upsert utilities
+- `rag/`: retrieval orchestration, reranker, agent policy, prompts
+- `config/`: env loader, provider selection, constants
+- `tests/`: retrieval/grounding/latency tests and fixtures
+- `scripts/`: CLI utilities for batch operations and evaluation
+
+### Acceptance Criteria (for agents)
+- All API endpoints implemented and documented
+- Ingested sample corpus indexed; at least 200 chunks with embeddings
+- Neo4j populated with ≥ 200 entities and ≥ 300 relations
+- Streamlit UI can answer queries with citations; graph panel interactive
+- Tests pass with thresholds specified in Evaluation Protocol
+- `.env.example` complete; README has 5-minute quickstart
+
 
