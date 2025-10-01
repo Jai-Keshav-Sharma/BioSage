@@ -1,0 +1,26 @@
+from pathlib import Path
+
+# Project root directory
+PROJECT_ROOT = Path(__file__).parent.parent
+
+# Paths
+DOCUMENTS_PATH = PROJECT_ROOT / "documents"
+QDRANT_PATH = PROJECT_ROOT / "qdrant_db_new"
+
+# Collection settings
+COLLECTION_NAME = "space-biology-papers"
+EMBEDDING_MODEL = "pritamdeka/S-PubMedBert-MS-MARCO"
+
+# Chunking settings
+CHUNK_SIZE = 800
+CHUNK_OVERLAP = 100
+
+# Batch settings
+BATCH_SIZE = 100
+
+# Print paths for verification
+if __name__ == "__main__":
+    print(f"Project Root: {PROJECT_ROOT}")
+    print(f"Documents Path: {DOCUMENTS_PATH}")
+    print(f"Documents Exists: {DOCUMENTS_PATH.exists()}")
+    print(f"Qdrant Path: {QDRANT_PATH}")
