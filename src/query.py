@@ -1,5 +1,5 @@
 from typing import List, Dict, Optional
-from langchain_community.embeddings import HuggingFaceBgeEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings 
 from langchain_community.vectorstores import Qdrant
 from qdrant_client import QdrantClient
 from src.config import COLLECTION_NAME, EMBEDDING_MODEL, QDRANT_PATH
@@ -8,14 +8,14 @@ def load_vector_store():
     """Load existing qdrant vector store from Docker instance."""
 
     print("🔄 Loading embedding model...")
-    embeddings = HuggingFaceBgeEmbeddings(
+    embeddings = HuggingFaceEmbeddings(
         model_name=EMBEDDING_MODEL,
         model_kwargs={'device': 'cpu'}, 
         encode_kwargs={'normalize_embeddings': True}
     )
 
     print("🔄 Connecting to Qdrant server...")
-    client = QdrantClient(path=str(QDRANT_PATH))
+    client = QdrantClient(url="http://localhost:6333")
 
     vector_store = Qdrant(
         client=client, 
@@ -84,23 +84,3 @@ def search_with_scores(query: str, k: int = 5):
         print("-"*80)
     
     return results
-
-
-
-if __name__ == "__main__":
-    print("\n" + "="*80)
-    print("🧪 TESTING QUERY SYSTEM")
-    print("="*80)
-    
-    # Test 1: General search
-    search("What are the effects of microgravity on muscle and bone?", k=3)
-    
-    print("\n\n")
-    
-    # Test 2: Search with filter
-    search("biofilm formation", k=3, filters={"research_types": "microbiology"})
-    
-    print("\n\n")
-    
-    # Test 3: Search with scores
-    search_with_scores("gene expression in space", k=3)

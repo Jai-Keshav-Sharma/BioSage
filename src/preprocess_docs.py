@@ -1,10 +1,11 @@
+
 import fitz
 from pathlib import Path
 from typing import Dict, List 
 import re
 from tqdm import tqdm
 from qdrant_client.http.exceptions import UnexpectedResponse
-from langchain_community.embeddings import HuggingFaceBgeEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Qdrant
 from langchain.docstore.document import Document 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -75,7 +76,7 @@ def extract_text_from_pdf(pdf_path: Path) -> Dict:
     for organism in organisms_list:
         if organism.lower() in title.lower() or organism.lower() in combined_text[:2000].lower():
             organisms.append(organism)
-    
+
     # Detect research type from title
     research_types = []
     if any(word in title.lower() for word in ['genomic', 'genome', 'gene']):
@@ -86,7 +87,7 @@ def extract_text_from_pdf(pdf_path: Path) -> Dict:
         research_types.append('meta-analysis')
     if any(word in title.lower() for word in ['biofilm', 'microbial']):
         research_types.append('microbiology')
-    
+
     return {
         'text': combined_text, 
         'pages_data': pages_data, 
@@ -131,10 +132,10 @@ def load_all_documents() -> List[Document]:
             types = extracted['metadata']['research_types']
             print(f"        └─ Organisms: {', '.join(organisms[:3])}")
             print(f"        └─ Types: {', '.join(types)}")
-            
+
         except Exception as e:
             print(f"❌ Error processing {pdf_path.name}: {e}")
-    
+
     print("-" * 80)
     print(f"\n✅ Successfully loaded {len(documents)} documents\n")
     return documents
@@ -170,8 +171,8 @@ def chunk_documents(documents: List[Document]) -> List[Document]:
             chunk.metadata['section_position'] = 'conclusion'
         else:
             chunk.metadata['section_position'] = 'body'
-    
+
     print(f"✅ Created {len(chunks)} chunks from {len(documents)} documents")
     print(f"   Average chunk size: {sum(len(c.page_content) for c in chunks) // len(chunks)} chars")
-    
+
     return chunks

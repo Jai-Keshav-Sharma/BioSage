@@ -1,0 +1,21 @@
+{
+    "dependencies": [
+        "langchain",
+        "langchain-openai", 
+        "langchain-community",
+        "langchain-huggingface",
+        "langgraph",
+        "qdrant-client",
+        "python-dotenv",
+        "pypdf",
+        "rich",
+        "."
+    ],
+    "graphs": {
+        "space_biology_agent": "./src/studio_agent.py:graph"
+    },
+    "env": ".env",
+    "dockerfile_lines": [
+        "RUN pip install --no-cache-dir -e ."
+    ]
+}
