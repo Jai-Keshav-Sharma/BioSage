@@ -17,10 +17,11 @@ from langchain_core.tools import tool
 from langchain_community.vectorstores import Qdrant
 from langchain_huggingface import HuggingFaceEmbeddings
 from qdrant_client import QdrantClient
+from tavily import TavilyClient  
 
 from src.config import QDRANT_PATH, COLLECTION_NAME, EMBEDDING_MODEL
 from src.state_retrieval import Summary
-from src.prompts import summarize_retrieved_content_prompt
+from src.prompts import summarize_retrieved_content_prompt, summarize_webpage_prompt
 
 # ===== UTILITY FUNCTIONS =====
 
@@ -249,3 +250,93 @@ def think_tool(reflection: str) -> str:
         Confirmation that reflection was recorded for decision-making
     """
     return f"Reflection recorded: {reflection}"
+
+
+@tool
+def search_nasa_web(query: str, max_results: int = 3) -> str:
+    """
+    Search official NASA websites (nasa.gov domains) for authoritative space-related information.
+    
+    Args:
+        query: The search query for NASA websites
+        max_results: Maximum number of results to return (default: 3, max: 5)
+        
+    Returns:
+        String containing summarized findings from NASA websites
+    """
+    import os
+    
+    max_results = min(max_results, 5)
+    
+    try:
+        api_key = os.getenv("TAVILY_API_KEY")
+        if not api_key:
+            return "Error: TAVILY_API_KEY not found in environment"
+            
+        client = TavilyClient(api_key=api_key)
+        
+        # Search with NASA domain restriction
+        results = client.search(
+            query=query,
+            max_results=max_results,
+            include_domains=["nasa.gov"],
+            search_depth="advanced", 
+            include_raw_content=True
+        )
+        
+        if not results.get('results'):
+            return f"No results found on official NASA websites for: '{query}'"
+        
+        # Process and summarize results
+        all_content = []
+        sources = []
+        
+        for i, result in enumerate(results['results'], 1):
+            url = result.get('url', 'Unknown URL')
+            title = result.get('title', 'Untitled')
+            content = result.get('content', '')
+            
+            if content:
+                # Use structured summarization (same pattern as existing tools)
+                summary = summarize_nasa_webpage(content)
+                all_content.append(f"NASA Finding {i}:\n{summary}")
+                sources.append(f"[{i}] {title}: {url}")
+        
+        if not all_content:
+            return f"No content found in NASA search results for: '{query}'"
+        
+        combined_content = "\n\n".join(all_content)
+        source_list = "\n".join(sources)
+        
+        return f"{combined_content}\n\n**NASA Sources:**\n{source_list}"
+        
+    except Exception as e:
+        return f"Error searching NASA websites: {str(e)}"
+
+
+def summarize_nasa_webpage(content: str) -> str:
+    """Summarize NASA webpage content using structured output (same pattern as existing summarization)."""
+    try:
+        # Use existing structured output pattern
+        structured_model = summarization_model.with_structured_output(Summary)
+        
+        # Generate structured summary using NASA-specific prompt
+        summary = structured_model.invoke([
+            HumanMessage(content=summarize_webpage_prompt.format(
+                webpage_content=content,
+                date=get_today_str()
+            ))
+        ])
+        
+        # Format using the same pattern as existing tools
+        formatted_summary = (
+            f"**Summary:**\n{summary.summary}\n\n"
+            f"**Key Excerpts:**\n{summary.key_excerpts}"
+        )
+        
+        return formatted_summary
+        
+    except Exception as e:
+        print(f"Failed to summarize NASA webpage: {str(e)}")
+        # Fallback to truncated content
+        return content[:800] + "..." if len(content) > 800 else content

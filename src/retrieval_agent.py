@@ -12,14 +12,15 @@ from langgraph.graph import StateGraph, START, END
 from langchain_core.messages import SystemMessage, HumanMessage, ToolMessage, filter_messages
 from langchain.chat_models import init_chat_model
 
+import src
 from src.state_retrieval import RetrieverState, RetrieverOutputState
 from src.prompts import retrieval_agent_prompt, compress_research_human_message, compress_research_system_prompt
-from src.utils import search_research_papers, search_specific_topic, think_tool, get_today_str
+from src.utils import search_research_papers, search_specific_topic, think_tool, search_nasa_web, get_today_str
 
 # ==== CONFIGURATION ====
 
 # Set up tools and model binding
-tools = [search_research_papers, search_specific_topic, think_tool]
+tools = [search_research_papers, search_specific_topic, search_nasa_web, think_tool]
 tools_by_name = {tool.name: tool for tool in tools}
 
 # initialize models 
