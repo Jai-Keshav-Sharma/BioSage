@@ -52,11 +52,9 @@ def get_current_dir() -> Path:
 
 def get_vector_store():
     """Initialize and return the Qdrant vector store."""
-    embeddings = HuggingFaceEmbeddings(
-        model_name=EMBEDDING_MODEL,
-        model_kwargs={'device': 'cpu'},
-        encode_kwargs={'normalize_embeddings': True}
-    )
+    
+    from src.create_vectorstore import CLIPEmbeddings
+    embeddings = CLIPEmbeddings(model_name=EMBEDDING_MODEL)
 
     client = QdrantClient(url="http://localhost:6333")
 

@@ -13,21 +13,18 @@ from langgraph.graph.message import add_messages
 class MasterResearchState(TypedDict):
     """
     Master state combining scoping and retrieval workflows.
-
-    Follows the full agent pattern but keeps only essential fields.
+    
+    Based on the notebook reference pattern.
     """
-
+    
     # === CORE CONVERSATION ===
     messages: Annotated[Sequence[BaseMessage], add_messages]
-
+    
     # === SCOPING RESULTS ===
     retrieval_brief: Optional[str]
-
-    # === RETRIEVAL RESULTS (keeping your existing fields) ===
-    retriever_messages: Annotated[Sequence[BaseMessage], add_messages]
-    tool_call_iterations: int  # Your existing field
+    
+    # === RETRIEVAL RESULTS ===
+    retriever_messages: Annotated[Sequence[BaseMessage], add_messages] 
+    tool_call_iterations: int
     compressed_notes: str
     raw_notes: Annotated[List[str], operator.add]
-
-    # === WORKFLOW CONTROL ===
-    next_step: str  # Following the reference pattern for routing
