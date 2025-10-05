@@ -11,6 +11,10 @@ QDRANT_PATH = PROJECT_ROOT / "qdrant_db_new"
 COLLECTION_NAME = "space-biology-papers"
 EMBEDDING_MODEL = "openai/clip-vit-base-patch32"
 
+# Qdrant configuration - ADD THESE
+QDRANT_MODE = "docker"  # or "docker"
+QDRANT_URL = "http://localhost:6333"
+
 # Chunking settings
 CHUNK_SIZE = 800
 CHUNK_OVERLAP = 100
