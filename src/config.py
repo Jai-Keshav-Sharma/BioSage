@@ -9,7 +9,7 @@ QDRANT_PATH = PROJECT_ROOT / "qdrant_db_new"
 
 # Collection settings
 COLLECTION_NAME = "space-biology-papers"
-EMBEDDING_MODEL = "pritamdeka/S-PubMedBert-MS-MARCO"
+EMBEDDING_MODEL = "openai/clip-vit-base-patch32"
 
 # Chunking settings
 CHUNK_SIZE = 800
