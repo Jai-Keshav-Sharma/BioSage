@@ -49,10 +49,9 @@ def initialize_qdrant_collection():
     if QDRANT_MODE == "docker":
         print(f"\n🐳 Connecting to Qdrant Docker instance at {QDRANT_URL}...")
         try:
-            # Simpler connection with api_key=None to avoid auth issues
+            # Use QDRANT_URL from config instead of hardcoded localhost
             client = QdrantClient(
-                host="localhost",
-                port=6333,
+                url=QDRANT_URL,
                 timeout=120,  # 2 minute timeout
                 prefer_grpc=False  # Use REST API instead of gRPC
             )
@@ -111,8 +110,7 @@ def create_qdrant_store_batched(chunks: List[Document], batch_size: int = 100):
     # Initialize Qdrant client based on mode
     if QDRANT_MODE == "docker":
         client = QdrantClient(
-            host="localhost",
-            port=6333,
+            url=QDRANT_URL,
             timeout=120,
             prefer_grpc=False
         )

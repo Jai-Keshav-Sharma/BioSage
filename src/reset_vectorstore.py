@@ -9,10 +9,9 @@ def reset_qdrant_docker():
     print(f"🎯 Target collection: {COLLECTION_NAME}")
     
     try:
-        # Connect to Docker Qdrant
+        # Connect to Docker Qdrant using config URL
         client = QdrantClient(
-            host="localhost",
-            port=6333,
+            url=QDRANT_URL,
             timeout=120,
             prefer_grpc=False
         )

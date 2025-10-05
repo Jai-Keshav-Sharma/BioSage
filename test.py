@@ -200,7 +200,7 @@ def run_all_tests():
     # Check environment setup
     console.print("\n🔧 [bold blue]Checking Environment Setup[/bold blue]")
     
-    required_keys = ["OPENAI_API_KEY", "TAVILY_API_KEY"]
+    required_keys = ["GROQ_API_KEY", "TAVILY_API_KEY"]
     missing_keys = [key for key in required_keys if not os.getenv(key)]
     
     if missing_keys:

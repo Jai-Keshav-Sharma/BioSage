@@ -34,7 +34,7 @@ def get_today_str() -> str:
 # ==== CONFIGURATOIN ====
 
 # Initialize model
-model = init_chat_model(model="openai:gpt-4o-mini", temperature=0)
+model = init_chat_model(model="groq:llama-3.3-70b-versatile", temperature=0)
 
 # ==== WORKFLOW NODES ====
 

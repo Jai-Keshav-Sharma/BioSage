@@ -7,16 +7,12 @@ PROJECT_ROOT = Path(__file__).parent.parent
 DOCUMENTS_PATH = PROJECT_ROOT / "documents"
 QDRANT_PATH = PROJECT_ROOT / "qdrant_db_new"
 
-QDRANT_MODE = "local"
-QDRANT_URL = "http://localhost:6333"
+QDRANT_MODE = "docker"
+QDRANT_URL = "http://192.168.137.1:6333"
 
 # Collection settings
 COLLECTION_NAME = "space-biology-papers"
 EMBEDDING_MODEL = "openai/clip-vit-base-patch32"
-
-# Qdrant configuration - ADD THESE
-QDRANT_MODE = "docker"  # or "docker"
-QDRANT_URL = "http://localhost:6333"
 
 # Chunking settings
 CHUNK_SIZE = 800

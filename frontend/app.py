@@ -629,7 +629,7 @@ def main():
         - **Frontend**: Streamlit
         - **Backend**: Python, LangChain
         - **Vector Database**: Qdrant
-        - **Embeddings**: CLIP (OpenAI)
+        - **Embeddings**: CLIP (OpenAI/HuggingFace)
         - **LLM**: Groq (llama-3.3-70b-versatile)
         
         #### 📊 Dataset

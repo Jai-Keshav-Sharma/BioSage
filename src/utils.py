@@ -19,7 +19,7 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from qdrant_client import QdrantClient
 from tavily import TavilyClient  
 
-from src.config import QDRANT_PATH, COLLECTION_NAME, EMBEDDING_MODEL
+from src.config import QDRANT_PATH, COLLECTION_NAME, EMBEDDING_MODEL, QDRANT_URL
 from src.state_retrieval import Summary
 from src.prompts import summarize_retrieved_content_prompt, summarize_webpage_prompt
 
@@ -56,7 +56,7 @@ def get_vector_store():
     from src.create_vectorstore import CLIPEmbeddings
     embeddings = CLIPEmbeddings(model_name=EMBEDDING_MODEL)
 
-    client = QdrantClient(url="http://localhost:6333")
+    client = QdrantClient(url=QDRANT_URL)
 
     vector_store = Qdrant(
         client=client,
@@ -87,7 +87,7 @@ def format_source_metadata(doc, index: int) -> str:
     return f"[{index}] {pmc_id}: {title[:60]}...{org_str}{type_str}"
 
 # Initialize summarization model
-summarization_model = init_chat_model(model="openai:gpt-4o-mini")
+summarization_model = init_chat_model(model="groq:llama-3.3-70b-versatile")
 
 def summarize_retrieved_content(retrieved_content: str) -> str:
     """Summarize retrieved research content using structured output.

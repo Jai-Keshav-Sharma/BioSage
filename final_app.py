@@ -566,7 +566,7 @@ def main():
             
             **Models**  
             - RAG: Groq llama-3.3-70b-versatile
-            - Deep Research: OpenAI GPT-4o-mini
+            - Deep Research: Groq llama-3.3-70b-versatile
             
             **Embeddings**  
             CLIP multimodal
@@ -792,7 +792,7 @@ def main():
             - **Vector Database**: Qdrant with CLIP embeddings
             - **Models**: 
               - RAG: Groq llama-3.3-70b-versatile
-              - Deep Research: OpenAI GPT-4o-mini
+              - Deep Research: Groq llama-3.3-70b-versatile
             - **Orchestration**: LangGraph state management
             
             #### 📊 Dataset
