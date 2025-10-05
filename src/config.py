@@ -7,6 +7,9 @@ PROJECT_ROOT = Path(__file__).parent.parent
 DOCUMENTS_PATH = PROJECT_ROOT / "documents"
 QDRANT_PATH = PROJECT_ROOT / "qdrant_db_new"
 
+QDRANT_MODE = "local"
+QDRANT_URL = "http://localhost:6333"
+
 # Collection settings
 COLLECTION_NAME = "space-biology-papers"
 EMBEDDING_MODEL = "openai/clip-vit-base-patch32"

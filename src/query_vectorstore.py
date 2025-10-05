@@ -3,25 +3,53 @@ Query the Qdrant Vector Store using CLIP embeddings
 Supports both local file-based and Docker-based Qdrant instances
 """
 
+from functools import lru_cache
 from langchain_qdrant import QdrantVectorStore
 from qdrant_client import QdrantClient
 from src.create_vectorstore import CLIPEmbeddings
 from src.config import QDRANT_PATH, QDRANT_MODE, QDRANT_URL, COLLECTION_NAME
 
 
-def load_vectorstore():
-    """Load existing Qdrant vector store with CLIP embeddings."""
+@lru_cache(maxsize=1)
+def get_qdrant_client() -> QdrantClient:
+    """
+    Get cached Qdrant client connection.
+    This is cached to avoid creating multiple connections.
     
-    print("🔄 Loading CLIP embeddings...")
-    embeddings = CLIPEmbeddings(model_name="openai/clip-vit-base-patch32")
-    
-    # Connect to Qdrant based on mode
+    Returns:
+        QdrantClient: Cached Qdrant client instance
+    """
     if QDRANT_MODE == "docker":
         print(f"🐳 Connecting to Qdrant Docker instance at {QDRANT_URL}...")
         client = QdrantClient(url=QDRANT_URL)
     else:
         print(f"🔄 Connecting to local Qdrant at {QDRANT_PATH}...")
         client = QdrantClient(path=str(QDRANT_PATH))
+    
+    return client
+
+
+@lru_cache(maxsize=1)
+def get_clip_embeddings() -> CLIPEmbeddings:
+    """
+    Get cached CLIP embeddings model.
+    This is cached to avoid reloading the model multiple times.
+    
+    Returns:
+        CLIPEmbeddings: Cached CLIP embeddings instance
+    """
+    print("🔄 Loading CLIP embeddings...")
+    return CLIPEmbeddings(model_name="openai/clip-vit-base-patch32")
+
+
+def load_vectorstore():
+    """Load existing Qdrant vector store with CLIP embeddings."""
+    
+    # Use cached CLIP embeddings
+    embeddings = get_clip_embeddings()
+    
+    # Use cached Qdrant client
+    client = get_qdrant_client()
     
     # Check if collection exists
     collections = client.get_collections().collections
@@ -63,9 +91,8 @@ def search_documents(query: str, k: int = 5):
     
     for i, doc in enumerate(results, 1):
         doc_type = doc.metadata.get('type', 'text')
-        modality = doc.metadata.get('modality', 'text')
         
-        if doc_type == 'image' or modality == 'image':
+        if doc_type == 'image':
             print(f"\n�️  Result {i} [IMAGE]:")
             print(f"   Image ID: {doc.metadata.get('image_id', 'Unknown')}")
             print(f"   Source: {doc.metadata.get('filename', 'Unknown')}")
@@ -103,9 +130,8 @@ def search_with_score(query: str, k: int = 5):
     
     for i, (doc, score) in enumerate(results, 1):
         doc_type = doc.metadata.get('type', 'text')
-        modality = doc.metadata.get('modality', 'text')
         
-        if doc_type == 'image' or modality == 'image':
+        if doc_type == 'image':
             print(f"\n�️  Result {i} [IMAGE] (Score: {score:.4f}):")
             print(f"   Image ID: {doc.metadata.get('image_id', 'Unknown')}")
             print(f"   Source: {doc.metadata.get('filename', 'Unknown')[:60]}...")
