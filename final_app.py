@@ -19,6 +19,25 @@ from src.master_research_workflow import master_research_agent
 load_dotenv(override=True)
 
 
+# Add this helper function at the top after imports
+
+import streamlit.components.v1 as components
+
+def scroll_to_element(element_id: str):
+    """Auto-scroll to a specific element using JavaScript."""
+    scroll_script = f"""
+        <script>
+            setTimeout(function() {{
+                const element = window.parent.document.getElementById('{element_id}');
+                if (element) {{
+                    element.scrollIntoView({{behavior: 'smooth', block: 'start'}});
+                }}
+            }}, 100);
+        </script>
+    """
+    components.html(scroll_script, height=0)
+
+
 def _display_sources(sources):
     """
     Display source documents in modern cards with proper formatting.
@@ -449,22 +468,17 @@ def main():
     with st.sidebar:
         st.markdown("### 🎯 Research Mode")
         
-        research_mode = st.selectbox(
+        research_mode = st.radio(
             "Choose Analysis Type",
             options=["quick_rag", "deep_research"],
             format_func=lambda x: {
-                "quick_rag": "🔍 Quick Search (RAG)",
-                "deep_research": "🧠 Deep Research (LangGraph)"
+                "quick_rag": "🔍 Quick Search",
+                "deep_research": "🧠 Deep Research"
             }[x],
             help="Quick Search for fast answers, Deep Research for comprehensive analysis",
-            key="research_mode"
+            key="research_mode",
+            label_visibility="collapsed"
         )
-        
-        # Display current mode with styled pill
-        if research_mode == "quick_rag":
-            st.markdown('<span class="mode-pill mode-rag">🔍 Quick Search Mode</span>', unsafe_allow_html=True)
-        else:
-            st.markdown('<span class="mode-pill mode-deep">🧠 Deep Research Mode</span>', unsafe_allow_html=True)
         
         st.markdown("---")
         
@@ -502,76 +516,26 @@ def main():
                 label_visibility="collapsed"
             )
             
-            st.markdown("---")
             
-            # Settings Section
-            st.markdown("### ⚙️ Query Settings")
-            
-            prompt_type = st.selectbox(
-                "Analysis Style",
-                options=["general", "comparative", "mechanism"],
-                format_func=lambda x: {
-                    "general": "📊 General Analysis",
-                    "comparative": "🔄 Comparative Study", 
-                    "mechanism": "⚙️ Mechanism Deep-Dive"
-                }[x],
-                help="Choose the type of analysis"
-            )
-            
-            num_results = st.slider(
-                "📚 Documents to Retrieve",
-                min_value=3,
-                max_value=20,
-                value=8,
-                help="Number of documents to retrieve"
-            )
-            
-            show_sources = st.checkbox(
-                "📖 Show Detailed Sources",
-                value=True,
-                help="Display detailed source information"
-            )
+            # Set default values for query settings
+            prompt_type = "general"
+            num_results = 5  # Default number of documents to retrieve
+            show_sources = True
         
         else:  # Deep research mode
             # Initialize default values for variables used in other tabs
             organisms = []
             research_types = []
             prompt_type = "general"
-            num_results = 8
+            num_results = 5  # Default number of documents to retrieve
             show_sources = True
-            
-            st.markdown("### 🧠 Deep Research Settings")
-            st.info("""
-            **Deep Research Mode Features:**
-            - Multi-step analysis workflow
-            - Comprehensive literature review
-            - Structured research reports
-            - Evidence synthesis
-            - Multi-turn conversations
-            """)
             
             # Clear conversation button
             if st.button("🗑️ Clear Conversation", help="Start a new research session"):
                 st.session_state.deep_research_messages = []
                 st.session_state.deep_research_state = None
                 st.rerun()
-        
-        st.markdown("---")
-        
-        # Info Section
-        with st.expander("ℹ️ About"):
-            st.markdown("""
-            **Vector Database**  
-            113,355+ documents indexed
-            
-            **Models**  
-            - RAG: Groq llama-3.3-70b-versatile
-            - Deep Research: Groq llama-3.3-70b-versatile
-            
-            **Embeddings**  
-            CLIP multimodal
-            """)
-        
+                
         # Footer
         st.markdown("---")
         st.markdown(
@@ -623,6 +587,7 @@ def main():
                 if st.button("🗑️ Clear", use_container_width=True):
                     st.rerun()
             
+
             if search_button and user_query:
                 with st.spinner("🔍 Analyzing research papers..."):
                     try:
@@ -639,6 +604,8 @@ def main():
                         
                         # Display answer with enhanced styling
                         st.markdown("---")
+                        st.markdown('<div id="answer-section"></div>', unsafe_allow_html=True)
+                        
                         st.markdown("""
                             <div style="background: linear-gradient(135deg, #10b98115 0%, #0ea5e915 100%); 
                                         padding: 2rem; border-radius: 16px; margin: 1.5rem 0;">
@@ -648,8 +615,21 @@ def main():
                         """, unsafe_allow_html=True)
                         
                         st.markdown(f"<div style='color: #1f2937; line-height: 1.8;'>{result['answer']}</div>", 
-                                   unsafe_allow_html=True)
+                                unsafe_allow_html=True)
                         st.markdown("</div>", unsafe_allow_html=True)
+                        
+                        # Auto-scroll to answer
+                        scroll_to_element("answer-section")
+                        
+                        # Auto-scroll to answer
+                        st.markdown("""
+                            <script>
+                                window.parent.document.getElementById('answer-section').scrollIntoView({
+                                    behavior: 'smooth',
+                                    block: 'start'
+                                });
+                            </script>
+                        """, unsafe_allow_html=True)
                         
                         # Display sources with modern cards
                         if result.get("sources") and show_sources:
@@ -703,6 +683,7 @@ def main():
             # Action button
             compare_button = st.button("🔬 Compare", type="primary", use_container_width=True)
             
+
             if compare_button and comp_query and len(comp_organisms) >= 2:
                 with st.spinner(f"🧬 Analyzing {len(comp_organisms)} organisms..."):
                     try:
@@ -715,8 +696,10 @@ def main():
                         
                         # Display comparative analysis
                         st.markdown("---")
+                        st.markdown('<div id="comparison-section"></div>', unsafe_allow_html=True)
+                        
                         st.markdown("""
-                            <div style="background: linear-gradient(135deg, #ec489915 0%, #f97316 15 100%); 
+                            <div style="background: linear-gradient(135deg, #ec489915 0%, #f9731615 100%); 
                                         padding: 2rem; border-radius: 16px; margin: 1.5rem 0;">
                                 <h3 style="margin: 0 0 1rem 0; color: #9a3412;">
                                     <span style="font-size: 1.5rem;">📊</span> Comparative Analysis
@@ -729,6 +712,9 @@ def main():
                                 st.markdown(findings)
                         
                         st.markdown("</div>", unsafe_allow_html=True)
+                        
+                        # Auto-scroll to comparison
+                        scroll_to_element("comparison-section")
                         
                         # Synthesis
                         if result.get("synthesis"):
@@ -863,7 +849,8 @@ def main():
             
             research_button = st.form_submit_button("� Generate Research Report", use_container_width=True, type="primary")
         
-        # Process research query
+
+                # Process research query
         if research_button and deep_query:            
             # Execute deep research workflow
             with st.spinner("🧠 Conducting deep research analysis..."):
@@ -872,8 +859,13 @@ def main():
                     research_report = run_deep_research_workflow(deep_query)
                     
                     # Display the research report
+                    st.markdown("---")
+                    st.markdown('<div id="research-report"></div>', unsafe_allow_html=True)
                     st.markdown("### 📋 Research Report")
                     st.markdown(research_report)
+                    
+                    # Auto-scroll to report
+                    scroll_to_element("research-report")
                     
                     # Download option
                     st.download_button(
@@ -890,21 +882,6 @@ def main():
         elif research_button:
             st.warning("⚠️ Please enter a research question to begin deep analysis.")
         
-        # Information about the deep research workflow
-        st.markdown("""
-        ---
-        
-        ### 🎯 How Deep Research Works
-        
-        1. **� Research**: Searches relevant literature using advanced retrieval agents  
-        2. **🧬 Synthesis**: Combines findings into a comprehensive markdown report
-        
-        **Features:**
-        - Multi-step reasoning workflow
-        - Comprehensive literature analysis
-        - Structured markdown reports
-        - Evidence-based synthesis
-        """)
 
 
 if __name__ == "__main__":
