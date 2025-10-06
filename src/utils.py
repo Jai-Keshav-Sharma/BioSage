@@ -87,7 +87,7 @@ def format_source_metadata(doc, index: int) -> str:
     return f"[{index}] {pmc_id}: {title[:60]}...{org_str}{type_str}"
 
 # Initialize summarization model
-summarization_model = init_chat_model(model="groq:llama-3.3-70b-versatile")
+summarization_model = init_chat_model(model="groq:meta-llama/llama-4-scout-17b-16e-instruct")
 
 def summarize_retrieved_content(retrieved_content: str) -> str:
     """Summarize retrieved research content using structured output.

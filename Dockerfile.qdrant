@@ -1,0 +1,11 @@
+
+FROM qdrant/qdrant:latest
+
+# Copy your pre-built vector database into the container
+COPY ./qdrant_db_new /qdrant/storage
+
+# Expose Qdrant's HTTP and gRPC ports
+EXPOSE 6333 6334
+
+# Use Qdrant's default startup command
+CMD ["./qdrant"]

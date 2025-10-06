@@ -23,10 +23,10 @@ tools = [search_research_papers, search_specific_topic, search_nasa_web, think_t
 tools_by_name = {tool.name: tool for tool in tools}
 
 # initialize models 
-model = init_chat_model(model="groq:llama-3.3-70b-versatile")
+model = init_chat_model(model="groq:meta-llama/llama-4-scout-17b-16e-instruct")
 model_with_tools = model.bind_tools(tools)
-summarization_model = init_chat_model(model="groq:llama-3.3-70b-versatile")
-compress_model = init_chat_model(model="groq:llama-3.3-70b-versatile")
+summarization_model = init_chat_model(model="groq:meta-llama/llama-4-scout-17b-16e-instruct")
+compress_model = init_chat_model(model="groq:meta-llama/llama-4-scout-17b-16e-instruct")
 
 # ==== AGENT NODES ====
 

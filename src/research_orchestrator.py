@@ -16,7 +16,7 @@ from src.prompts import final_report_generation_prompt
 from src.utils import get_today_str
 
 # Initialize model for synthesis
-orchestrator_model = init_chat_model(model="groq:llama-3.3-70b-versatile", temperature=0)
+orchestrator_model = init_chat_model(model="groq:meta-llama/llama-4-scout-17b-16e-instruct", temperature=0)
 
 def research_node(state: MasterResearchState) -> dict:
     """

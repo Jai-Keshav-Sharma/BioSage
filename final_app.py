@@ -816,11 +816,16 @@ def main():
                         padding: 2rem; border-radius: 16px; margin-bottom: 2rem;">
                 <h2 style="margin: 0; color: #1f2937;">🧠 Deep Research Assistant</h2>
                 <p style="color: #6b7280; margin-top: 0.5rem;">
-                    Comprehensive multi-step research analysis with LangGraph workflow
+                    Structured multi-stage research powered by advanced reasoning.
                 </p>
             </div>
         """, unsafe_allow_html=True)
-        
+
+        # Slight warning  !!
+        st.info("""
+        ℹ️ **First-Time Note:** If you see an error message when you run this for the first time, it's completely okay. 
+        This is common when using open-source LLMs. Just enter your query again and proceed.
+        """)
 
         
         # Chat input section - ChatGPT style
