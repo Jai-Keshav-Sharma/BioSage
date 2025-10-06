@@ -49,6 +49,9 @@ class AdvancedRAG:
         self.vector_store = None
         self.llm = None
         
+        # Auto-initialize to avoid NoneType errors
+        self.initialize()
+        
     def initialize(self):
         """Load vector store and LLM."""
         print("⚙️  Initializing Advanced RAG pipeline...")
@@ -85,25 +88,29 @@ class AdvancedRAG:
         Returns:
             Configured retriever
         """
-        search_kwargs = {"k": k or self.k}
+        if self.vector_store is None:
+            raise RuntimeError("Vector store not initialized. Call initialize() first or create AdvancedRAG with auto-initialization.")
         
-        # Build filter conditions efficiently
-        filter_map = [
-            (organisms, "organisms", models.MatchAny),
-            (research_types, "research_types", models.MatchAny),
-            (modality, "type", models.MatchValue)
-        ]
+        # Get the requested number of results
+        num_results = k or self.k
         
-        must_conditions = [
-            models.FieldCondition(
-                key=key,
-                match=match_type(any=value) if match_type == models.MatchAny else match_type(value=value)
-            )
-            for value, key, match_type in filter_map if value
-        ]
+        # If we have filters, retrieve more results and filter in Python
+        # This avoids needing Qdrant indexes
+        has_filters = any([organisms, research_types, modality])
         
-        if must_conditions:
-            search_kwargs["filter"] = models.Filter(must=must_conditions)
+        if has_filters:
+            # Retrieve 3x more results to ensure we have enough after filtering
+            search_kwargs = {"k": num_results * 3}
+        else:
+            search_kwargs = {"k": num_results}
+        
+        # Store filter criteria for post-filtering
+        self._current_filters = {
+            "organisms": organisms,
+            "research_types": research_types,
+            "modality": modality,
+            "target_k": num_results
+        }
         
         return self.vector_store.as_retriever(
             search_type="similarity",
@@ -157,6 +164,57 @@ IMPORTANT: Do NOT add a "References:" section at the end. Do NOT include citatio
         template = PROMPTS.get(context_type, PROMPTS["general"])
         return ChatPromptTemplate.from_template(template)
     
+    def _filter_documents(self, documents: List[Document]) -> List[Document]:
+        """
+        Filter documents based on metadata criteria stored in _current_filters.
+        This allows filtering without requiring Qdrant indexes.
+        
+        Args:
+            documents: List of documents from retriever
+            
+        Returns:
+            Filtered list of documents (up to target_k)
+        """
+        if not hasattr(self, '_current_filters'):
+            return documents
+        
+        filters = self._current_filters
+        organisms = filters.get("organisms")
+        research_types = filters.get("research_types")
+        modality = filters.get("modality")
+        target_k = filters.get("target_k", self.k)
+        
+        filtered_docs = []
+        
+        for doc in documents:
+            metadata = doc.metadata
+            
+            # Check organism filter
+            if organisms:
+                doc_organisms = metadata.get("organisms", [])
+                if not any(org in doc_organisms for org in organisms):
+                    continue
+            
+            # Check research_types filter
+            if research_types:
+                doc_research_types = metadata.get("research_types", [])
+                if not any(rt in doc_research_types for rt in research_types):
+                    continue
+            
+            # Check modality filter
+            if modality:
+                doc_type = metadata.get("type")
+                if doc_type != modality:
+                    continue
+            
+            filtered_docs.append(doc)
+            
+            # Stop once we have enough results
+            if len(filtered_docs) >= target_k:
+                break
+        
+        return filtered_docs
+    
     def query(
         self,
         question: str,
@@ -201,8 +259,26 @@ IMPORTANT: Do NOT add a "References:" section at the end. Do NOT include citatio
             # Execute query (no terminal output)
             result = retrieval_chain.invoke({"input": question})
             
-            answer = result.get("answer", "No answer generated")
+            # Get raw context documents
             context_docs = result.get("context", [])
+            
+            # Apply post-filtering if we have filter criteria
+            if hasattr(self, '_current_filters') and any([organisms, research_types, modality]):
+                context_docs = self._filter_documents(context_docs)
+                
+                # If we don't have enough filtered results, warn but continue
+                if len(context_docs) == 0:
+                    print(f"⚠️  No documents matched the filters. Trying without filters...")
+                    # Re-run without filters
+                    retriever = self.vector_store.as_retriever(
+                        search_type="similarity",
+                        search_kwargs={"k": k or self.k}
+                    )
+                    retrieval_chain = create_retrieval_chain(retriever, document_chain)
+                    result = retrieval_chain.invoke({"input": question})
+                    context_docs = result.get("context", [])
+            
+            answer = result.get("answer", "No answer generated")
             
             # Clean up answer: remove References section
             answer = self._clean_answer(answer)
