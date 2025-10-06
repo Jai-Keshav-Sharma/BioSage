@@ -100,7 +100,7 @@ def _display_sources(sources):
 
 # Page configuration
 st.set_page_config(
-    page_title="NASA Space Biology Research Assistant",
+    page_title="BioSage - AI Powered Search Engine",
     page_icon="🚀",
     layout="wide",
     initial_sidebar_state="expanded"
