@@ -8,7 +8,7 @@
 [![LangGraph](https://img.shields.io/badge/🕸️_LangGraph-0.2.14-purple.svg)](https://langchain-ai.github.io/langgraph/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.28+-red.svg)](https://streamlit.io/)
 
-### 🌐 **[Live Demo](YOUR_DEPLOYED_APP_LINK_HERE)** 🌐
+### 🌐 **[Live Demo](https://biosage.streamlit.app/)** 🌐
 
 *An intelligent research assistant that transforms how scientists explore space biology literature*
 
@@ -936,29 +936,15 @@ conditions [3][4]...
 <div align="center">
 
 ### **Jai Keshav Sharma** (Team Lead)
-*AI Engineer | LangChain Specialist*
+*Student | UTD, CSVTU Bhilai*
 
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=flat&logo=linkedin&logoColor=white)](https://linkedin.com/in/jai-keshav-sharma)
 [![GitHub](https://img.shields.io/badge/GitHub-181717?style=flat&logo=github&logoColor=white)](https://github.com/Jai-Keshav-Sharma)
 
-**Contributions:**
-- System architecture design
-- LangGraph workflow orchestration
-- Agent development (scoping + retrieval)
-- Qdrant vector database implementation
-- Streamlit UI development
-
 ---
 
 ### **Saurabh Kumar**
-*Full Stack Developer | ML Engineer*
-
-**Contributions:**
-- PDF processing pipeline
-- Multimodal embedding extraction
-- NASA web search integration
-- UI/UX design and optimization
-- Testing and documentation
+*Student | UTD, CSVTU Bhilai*
 
 </div>
 
@@ -1027,3 +1013,4 @@ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
 [![GitHub forks](https://img.shields.io/github/forks/Jai-Keshav-Sharma/BioSage?style=social)](https://github.com/Jai-Keshav-Sharma/BioSage/network/members)
 
 </div>
+
