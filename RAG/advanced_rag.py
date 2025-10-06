@@ -317,6 +317,7 @@ IMPORTANT: Do NOT add a "References:" section at the end. Do NOT include citatio
         self,
         question: str,
         organisms: List[str],
+        research_types: Optional[List[str]] = None,
         k: int = 10
     ) -> Dict:
         """
@@ -325,12 +326,14 @@ IMPORTANT: Do NOT add a "References:" section at the end. Do NOT include citatio
         Args:
             question: Research question
             organisms: List of organisms to compare
+            research_types: Optional filter for research types
             k: Results per organism
         """
         if not organisms:
             raise ValueError("At least one organism must be specified")
         
         results = {}
+        individual_findings = {}
         
         # Query each organism
         for organism in organisms:
@@ -338,13 +341,18 @@ IMPORTANT: Do NOT add a "References:" section at the end. Do NOT include citatio
                 result = self.query(
                     question=f"{question} in {organism}",
                     organisms=[organism],
+                    research_types=research_types,
                     prompt_type="comparative",
                     k=k,
                     show_sources=False
                 )
                 results[organism] = result
+                # Extract answer text for display
+                individual_findings[organism] = result.get('answer', '')
             except Exception as e:
-                results[organism] = {"answer": f"Error: {e}", "sources": []}
+                error_msg = f"Error: {str(e)}"
+                results[organism] = {"answer": error_msg, "sources": []}
+                individual_findings[organism] = error_msg
         
         # Build synthesis prompt with truncated answers
         findings = "\n\n".join([
@@ -371,6 +379,7 @@ IMPORTANT: Do NOT add a "References:" section. Do NOT include citation numbers l
             "question": question,
             "organisms": organisms,
             "individual_results": results,
+            "individual_findings": individual_findings,
             "synthesis": synthesis_content
         }
 
