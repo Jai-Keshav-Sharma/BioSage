@@ -713,8 +713,8 @@ def main():
                         
                         st.markdown("</div>", unsafe_allow_html=True)
                         
-                        # Auto-scroll to comparison
-                        scroll_to_element("comparison-section")
+                        # Auto-scroll to comparison (DISABLED - causes tab switching)
+                        # scroll_to_element("comparison-section")
                         
                         # Synthesis
                         if result.get("synthesis"):
