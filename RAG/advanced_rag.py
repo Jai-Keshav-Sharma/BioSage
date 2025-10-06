@@ -398,6 +398,7 @@ IMPORTANT: Do NOT add a "References:" section at the end. Do NOT include citatio
     ) -> Dict:
         """
         Compare findings across different organisms.
+        OPTIMIZED: Uses only ONE LLM call instead of N+1 calls to avoid rate limits.
         
         Args:
             question: Research question
@@ -409,47 +410,123 @@ IMPORTANT: Do NOT add a "References:" section at the end. Do NOT include citatio
             raise ValueError("At least one organism must be specified")
         
         results = {}
-        individual_findings = {}
+        organism_contexts = {}
         
-        # Query each organism
+        # Step 1: Retrieve documents for each organism (NO LLM calls here)
         for organism in organisms:
             try:
-                result = self.query(
-                    question=f"{question} in {organism}",
+                # Create filtered retriever for this organism
+                retriever = self.create_filtered_retriever(
                     organisms=[organism],
                     research_types=research_types,
-                    prompt_type="comparative",
-                    k=k,
-                    show_sources=False
+                    modality=None,
+                    k=k
                 )
-                results[organism] = result
-                # Extract answer text for display
-                individual_findings[organism] = result.get('answer', '')
+                
+                # Retrieve documents (similarity search only, no LLM)
+                docs = retriever.get_relevant_documents(f"{question} in {organism}")
+                
+                # Apply post-filtering
+                if hasattr(self, '_current_filters') and any([[organism], research_types]):
+                    docs = self._filter_documents(docs)
+                
+                # Store results
+                results[organism] = {
+                    "answer": "",  # Will be filled by the single LLM call
+                    "sources": docs
+                }
+                
+                # Build context from documents
+                if docs:
+                    context_text = "\n\n".join([
+                        f"[Document {i+1}] {doc.page_content[:500]}"
+                        for i, doc in enumerate(docs[:5])  # Limit to top 5 docs
+                    ])
+                    organism_contexts[organism] = context_text
+                else:
+                    organism_contexts[organism] = "No relevant documents found."
+                    
             except Exception as e:
-                error_msg = f"Error: {str(e)}"
+                error_msg = f"Error retrieving documents: {str(e)}"
                 results[organism] = {"answer": error_msg, "sources": []}
-                individual_findings[organism] = error_msg
+                organism_contexts[organism] = error_msg
         
-        # Build synthesis prompt with truncated answers
-        findings = "\n\n".join([
-            f"{org}:\n{res['answer'][:300]}..."
-            for org, res in results.items()
-            if "Error" not in res['answer']
-        ])
-        
-        synthesis_prompt = f"""Based on the following findings for different organisms, provide a comparative summary:
-
-{findings}
-
-Highlight key similarities and differences across organisms. 
-
-IMPORTANT: Do NOT add a "References:" section. Do NOT include citation numbers like [1], [2], etc. Just provide the comparative analysis directly."""
-        
+        # Step 2: Make ONE LLM call to analyze all organisms together
         try:
-            synthesis = self.llm.invoke(synthesis_prompt)
-            synthesis_content = self._clean_answer(synthesis.content)
+            # Build a comprehensive prompt with all organism contexts
+            contexts_section = "\n\n".join([
+                f"=== {org.upper()} ===\n{context}"
+                for org, context in organism_contexts.items()
+                if "Error" not in context
+            ])
+            
+            comparative_prompt = f"""You are an expert in comparative space biology research.
+
+Based on the following research contexts for different organisms, answer this question: {question}
+
+Research Contexts:
+{contexts_section}
+
+Provide:
+1. Individual findings for each organism (2-3 paragraphs each)
+2. A comparative synthesis highlighting key similarities and differences
+
+Format your response EXACTLY as follows:
+
+## ORGANISM: [First Organism Name]
+[Detailed findings for this organism]
+
+## ORGANISM: [Second Organism Name]
+[Detailed findings for this organism]
+
+## SYNTHESIS
+[Comparative analysis highlighting similarities and differences]
+
+IMPORTANT: Do NOT add a "References:" section. Do NOT include citation numbers like [1], [2], etc."""
+
+            # Single LLM call
+            response = self.llm.invoke(comparative_prompt)
+            response_text = self._clean_answer(response.content)
+            
+            # Parse the response to extract individual findings and synthesis
+            individual_findings = {}
+            synthesis_content = ""
+            
+            # Split by sections
+            sections = response_text.split("## ORGANISM:")
+            
+            # Extract organism-specific findings
+            for section in sections[1:]:  # Skip first empty split
+                lines = section.strip().split("\n", 1)
+                if len(lines) >= 2:
+                    org_name = lines[0].strip()
+                    org_content = lines[1].strip()
+                    
+                    # Find matching organism (case-insensitive partial match)
+                    for organism in organisms:
+                        if organism.lower() in org_name.lower():
+                            individual_findings[organism] = org_content.split("## SYNTHESIS")[0].strip()
+                            results[organism]["answer"] = individual_findings[organism]
+                            break
+            
+            # Extract synthesis
+            if "## SYNTHESIS" in response_text:
+                synthesis_content = response_text.split("## SYNTHESIS")[1].strip()
+            else:
+                synthesis_content = "Comparative analysis not found in response."
+            
+            # Fill in any missing organism findings with placeholder
+            for organism in organisms:
+                if organism not in individual_findings:
+                    individual_findings[organism] = f"Analysis for {organism} not found in response."
+                    results[organism]["answer"] = individual_findings[organism]
+            
         except Exception as e:
-            synthesis_content = "Error generating comparative summary"
+            # Fallback error handling
+            synthesis_content = f"Error generating comparative analysis: {str(e)}"
+            individual_findings = {org: "Error processing analysis" for org in organisms}
+            for organism in organisms:
+                results[organism]["answer"] = "Error processing analysis"
         
         return {
             "question": question,
